@@ -1,10 +1,12 @@
-﻿namespace TruckGame
+﻿using TruckGame.TruckGame;
+
+namespace TruckGame
 {
     internal class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
+            TruckDefenceGame.Instance.Run();
         }
     }
 }
