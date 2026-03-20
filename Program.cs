@@ -1,12 +1,3 @@
-﻿using TruckGame.TruckGame;
+using Framework.Tetris;
 
-namespace TruckGame
-{
-    internal class Program
-    {
-        static void Main(string[] args)
-        {
-            TruckDefenceGame.Instance.Run();
-        }
-    }
-}
+new TetrisGame().Run();

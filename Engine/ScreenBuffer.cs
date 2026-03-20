@@ -84,15 +84,33 @@ namespace Framework.Engine
 
         public void WriteText(int x, int y, string text, ConsoleColor color = ConsoleColor.Gray, ConsoleColor bgColor = ConsoleColor.Black)
         {
+            int hangulCount = 0;
+
             for (int i = 0; i < text.Length; i++)
             {
-                SetCell(x + i, y, text[i], color, bgColor);
+                SetCell(x + i+hangulCount, y, text[i], color, bgColor);
+                if ((text[i] >= '\uAC00' && text[i] <= '\uD7A3') || 
+                    (text[i] >= '\u3131' && text[i] <= '\u318E'))
+                {
+                    hangulCount++;
+                    SetCell(x + i + hangulCount, y, '\0', color, bgColor);
+                }
             }
         }
 
         public void WriteTextCentered(int y, string text, ConsoleColor color = ConsoleColor.Gray, ConsoleColor bgColor = ConsoleColor.Black)
         {
-            int x = (_width - text.Length) / 2;
+            int hangulCount = 0;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                if ((text[i] >= '\uAC00' && text[i] <= '\uD7A3') ||
+                    (text[i] >= '\u3131' && text[i] <= '\u318E'))
+                {
+                    hangulCount++;
+                }
+            }
+            int x = (_width - (text.Length+hangulCount)) / 2;
             WriteText(x, y, text, color, bgColor);
         }
 
