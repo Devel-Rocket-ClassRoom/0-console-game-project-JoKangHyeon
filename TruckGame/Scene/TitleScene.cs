@@ -9,6 +9,8 @@ namespace TruckGame.TruckGame
     {
         int selectedMenu = 0;
 
+        public event GameAction<int> SceneRequested;
+
         public TitleScene()
         {
         }
@@ -51,6 +53,11 @@ namespace TruckGame.TruckGame
                 {
                     selectedMenu--;
                 }
+            }
+
+            if (Input.IsKeyDown(ConsoleKey.Enter))
+            {
+                SceneRequested.Invoke(selectedMenu+1);
             }
         }
     }
