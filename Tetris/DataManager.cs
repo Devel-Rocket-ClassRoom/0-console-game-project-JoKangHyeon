@@ -84,7 +84,7 @@ public static class DataManager
         }
     }
 
-    public static void SaveConfig()
+    public static void SaveConfig() 
     {
         UpdateKeyConfig();
 
