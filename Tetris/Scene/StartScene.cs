@@ -1,4 +1,6 @@
 ﻿using Framework.Engine;
+using NAudio.Wave;
+using TruckGame.Properties;
 
 namespace Framework.Tetris
 {
@@ -7,6 +9,9 @@ namespace Framework.Tetris
         public event GameAction<int> MenuSelected;
 
         int _selectedMenu;
+
+        WaveOutEvent _bgmPlayer = new();
+        WaveOutEvent _buttonSound = new();
 
         public override void Draw(ScreenBuffer buffer)
         {
@@ -41,12 +46,25 @@ namespace Framework.Tetris
 
         public override void Load()
         {
-            //throw new NotImplementedException();
+            var resourceStream = Resources.TitleMusic;
+            var waveReader = new WaveFileReader(resourceStream);
+            var wavStream = new RawSourceWaveStream(waveReader, new WaveFormat(44100, 24, 2));
+            _bgmPlayer = new WaveOutEvent();
+            _bgmPlayer.Init(wavStream);
+            _bgmPlayer.Volume = DataManager.CurrentGameData.BGMVolume/10f;
+            _bgmPlayer.Play();
+
+
+            wavStream = new RawSourceWaveStream(waveReader, new WaveFormat(44100, 16, 1));
+            _buttonSound = new WaveOutEvent();
+            _buttonSound.Init(wavStream);
+            _buttonSound.Volume = DataManager.CurrentGameData.SEVolume/10f;
         }
 
         public override void Unload()
         {
-            //throw new NotImplementedException();
+            _bgmPlayer.Dispose();
+            _buttonSound.Dispose();
         }
 
         public override void Update(float deltaTime)
@@ -57,11 +75,23 @@ namespace Framework.Tetris
             }
             else if (Input.IsKeyDown(Input.VirtualKey.Down))
             {
+                var resourceStream = Resources.button_1;
+                var waveReader = new WaveFileReader(resourceStream);
+
+                _buttonSound.Stop();
+                _buttonSound.Init(waveReader);
+                _buttonSound.Play();
                 if (_selectedMenu < 2)
                     _selectedMenu++;
             }
             else if (Input.IsKeyDown(Input.VirtualKey.Up))
             {
+                var resourceStream = Resources.button_1;
+                var waveReader = new WaveFileReader(resourceStream);
+
+                _buttonSound.Stop();
+                _buttonSound.Init(waveReader);
+                _buttonSound.Play();
                 if (_selectedMenu > 0)
                     _selectedMenu--;
             }

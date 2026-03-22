@@ -1,7 +1,9 @@
 ﻿using Framework.Engine;
+using NAudio.Wave;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using TruckGame.Properties;
 
 internal class ConfigScene : Scene
 {
@@ -32,6 +34,10 @@ internal class ConfigScene : Scene
     string Debug = "";
 
     public event GameAction RequestReturnMainScreen;
+
+    WaveOutEvent _bgmPlayer;
+    WaveOutEvent _buttonSound;
+
     public ConfigScene()
     {
     }
@@ -112,11 +118,25 @@ internal class ConfigScene : Scene
     public override void Load()
     {
         UpdateKeyConfigText();
+        var resourceStream = Resources.TitleMusic;
+        var waveReader = new WaveFileReader(resourceStream);
+        var wavStream = new RawSourceWaveStream(waveReader, new WaveFormat(44100, 24, 2));
+        _bgmPlayer = new WaveOutEvent();
+        _bgmPlayer.Init(wavStream);
+        _bgmPlayer.Volume = DataManager.CurrentGameData.BGMVolume / 10f;
+        _bgmPlayer.Play();
+
+
+        wavStream = new RawSourceWaveStream(waveReader, new WaveFormat(44100, 16, 1));
+        _buttonSound = new WaveOutEvent();
+        _buttonSound.Init(wavStream);
+        _buttonSound.Volume = DataManager.CurrentGameData.SEVolume / 10f;
     }
 
     public override void Unload()
     {
-
+        _bgmPlayer?.Dispose();
+        _buttonSound?.Dispose();
     }
 
     public void UpdateKeyConfigText()
@@ -202,6 +222,7 @@ internal class ConfigScene : Scene
 
         Input.SetKey(defaultKeys[target], target);
         UpdateKeyConfigText();
+        PlayButtonSound();
     }
 
     public override void Update(float deltaTime)
@@ -211,6 +232,7 @@ internal class ConfigScene : Scene
             if (Input.IsKey(Input.VirtualKey.SPECIAL_ESC))
             {
                 _keyWaiting = false;
+                PlayButtonSound();
             }
             else
             {
@@ -268,6 +290,7 @@ internal class ConfigScene : Scene
                 if (_selectedMenu < keyConfigY.Length - 1)
                 {
                     _selectedMenu++;
+                    PlayButtonSound();
                 }
             }
             else
@@ -275,6 +298,7 @@ internal class ConfigScene : Scene
                 if (_selectedMenu < configY.Length - 1)
                 {
                     _selectedMenu++;
+                    PlayButtonSound();
                 }
             }
         }
@@ -284,6 +308,7 @@ internal class ConfigScene : Scene
             if (_selectedMenu > 0)
             {
                 _selectedMenu--;
+                PlayButtonSound();
             }
         }
 
@@ -339,14 +364,17 @@ internal class ConfigScene : Scene
                             _keyWaiting = false;
                             Input.SetKey(key, _keyEditingTarget);
                             UpdateKeyConfigText();
+                            PlayButtonSound();
                         }
                         else
                         {
                             Debug = key.ToString();
                             _keyWaiting = false;
+                            PlayButtonSound();
                         }
                     });
                 }
+                PlayButtonSound();
             }
             else
             {
@@ -355,11 +383,13 @@ internal class ConfigScene : Scene
                     case 2:
                         _keyEdit = true;
                         _selectedMenu = 0;
+                        PlayButtonSound();
                         break;
                     case 3:
                         DataManager.ApplyConfig();
                         DataManager.SaveConfig();
                         RequestReturnMainScreen?.Invoke();
+                        PlayButtonSound();
                         break;
                 }
             }
@@ -375,12 +405,15 @@ internal class ConfigScene : Scene
                         if (DataManager.CurrentGameData.BGMVolume > 0)
                         {
                             DataManager.CurrentGameData.BGMVolume--;
+                            _bgmPlayer.Volume = DataManager.CurrentGameData.BGMVolume / 10f;
                         }
                         break;
                     case 1:
                         if (DataManager.CurrentGameData.SEVolume > 0)
                         {
                             DataManager.CurrentGameData.SEVolume--;
+                            _buttonSound.Volume = DataManager.CurrentGameData.SEVolume / 10f;
+                            PlayButtonSound();
                         }
                         break;
                 }
@@ -397,17 +430,30 @@ internal class ConfigScene : Scene
                         if (DataManager.CurrentGameData.BGMVolume < 10)
                         {
                             DataManager.CurrentGameData.BGMVolume++;
+                            _bgmPlayer.Volume = DataManager.CurrentGameData.BGMVolume / 10f;
                         }
                         break;
                     case 1:
                         if (DataManager.CurrentGameData.SEVolume < 10)
                         {
                             DataManager.CurrentGameData.SEVolume++;
+                            _buttonSound.Volume = DataManager.CurrentGameData.SEVolume / 10f;
+                            PlayButtonSound();
                         }
                         break;
                 }
             }
         }
+    }
+
+    void PlayButtonSound()
+    {
+        var resourceStream = Resources.button_1;
+        var waveReader = new WaveFileReader(resourceStream);
+
+        _buttonSound.Stop();
+        _buttonSound.Init(waveReader);
+        _buttonSound.Play();
     }
 }
 

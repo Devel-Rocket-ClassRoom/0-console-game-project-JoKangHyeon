@@ -1,5 +1,7 @@
 ﻿using Framework.Engine;
+using NAudio.Wave;
 using System;
+using TruckGame.Properties;
 
 namespace Framework.Tetris
 {
@@ -27,6 +29,9 @@ namespace Framework.Tetris
 
         bool _quick = false;
         bool _gameOver = false;
+
+        WaveOutEvent _bgmPlayer;
+        WaveOutEvent _buttonSound;
 
         public override void Draw(ScreenBuffer buffer)
         {
@@ -136,11 +141,26 @@ namespace Framework.Tetris
 
             _scoreP1 = 0;
             _gameOver = false;
+
+            var resourceStream = Resources.GameMusic;
+            var waveReader = new WaveFileReader(resourceStream);
+            var wavStream = new RawSourceWaveStream(waveReader, new WaveFormat(44100, 24, 2));
+            _bgmPlayer = new WaveOutEvent();
+            _bgmPlayer.Init(wavStream);
+            _bgmPlayer.Volume = DataManager.CurrentGameData.BGMVolume / 10f;
+            _bgmPlayer.Play();
+
+
+            wavStream = new RawSourceWaveStream(waveReader, new WaveFormat(44100, 16, 1));
+            _buttonSound = new WaveOutEvent();
+            _buttonSound.Init(wavStream);
+            _buttonSound.Volume = DataManager.CurrentGameData.SEVolume / 10f;
         }
 
         public override void Unload()
         {
-
+            _buttonSound?.Dispose();
+            _bgmPlayer?.Dispose();
         }
 
         public override void Update(float deltaTime)
@@ -151,6 +171,7 @@ namespace Framework.Tetris
                 if (Input.IsKeyDown(Input.VirtualKey.Select))
                 {
                     RestartRequest?.Invoke();
+                    PlayButtonSound();
                 }
                 return;
             }
@@ -191,6 +212,7 @@ namespace Framework.Tetris
             if (Input.IsKeyDown(Input.VirtualKey.Keep))
             {
                 _tetrisP1.Keep();
+                PlayButtonSound();
             }
 
             if (_gameOver)
@@ -208,5 +230,15 @@ namespace Framework.Tetris
                 _scoreTimer += deltaTime;
             }
         }
+        void PlayButtonSound()
+        {
+            var resourceStream = Resources.button_1;
+            var waveReader = new WaveFileReader(resourceStream);
+
+            _buttonSound.Stop();
+            _buttonSound.Init(waveReader);
+            _buttonSound.Play();
+        }
     }
+
 }
