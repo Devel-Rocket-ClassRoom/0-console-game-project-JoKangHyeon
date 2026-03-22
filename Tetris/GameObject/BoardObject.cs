@@ -5,6 +5,9 @@ namespace Framework.Tetris
 {
     internal class BoardObject : GameObject
     {
+        public event GameAction GameOver;
+        public event GameAction<int,bool> GetScore;
+
         int _posX, _posY;
 
         ConsoleColor[,] tetrisColors = new ConsoleColor[TetrisGame.k_BoardSizeX, TetrisGame.k_BoardSizeY + TetrisGame.k_YBuffer];
@@ -28,8 +31,8 @@ namespace Framework.Tetris
                     }
                     if (tetrisBlocks[i, j])
                     {
-                    buffer.SetCell(_posX + i * 2, _posY + j - TetrisGame.k_YBuffer, '\u2588', tetrisColors[i, j]);
-                    buffer.SetCell(_posX + i * 2 + 1, _posY + j - TetrisGame.k_YBuffer, '\u2588', tetrisColors[i, j]);
+                        buffer.SetCell(_posX + i * 2 +1, _posY + j - TetrisGame.k_YBuffer, '\u2588', tetrisColors[i, j]);
+                        buffer.SetCell(_posX + i * 2 +2, _posY + j - TetrisGame.k_YBuffer, '\u2588', tetrisColors[i, j]);
                     }
                 }
             }
@@ -37,7 +40,7 @@ namespace Framework.Tetris
 
         public void Clear()
         {
-
+            tetrisBlocks = new bool[TetrisGame.k_BoardSizeX, TetrisGame.k_BoardSizeY + TetrisGame.k_YBuffer];
         }
 
         public override void Update(float deltaTime)
@@ -56,6 +59,10 @@ namespace Framework.Tetris
         {
             tetrisBlocks[x, y] = true;
             tetrisColors[x, y] = color;
+            if (y <= 5)
+            {
+                GameOver?.Invoke();
+            }
         }
 
         public void CheckBoard()
@@ -81,18 +88,22 @@ namespace Framework.Tetris
                         tetrisBlocks[x, y] = false;
                     }
 
-                    for (int y2 = y; y2 < tetrisBlocks.GetLength(1)-1; y2++)
+                    for (int y2 = y; y2 >=1; y2--)
                     {
                         for (int x = 0; x < tetrisBlocks.GetLength(0); x++)
                         {
-                            tetrisBlocks[x, y2] = tetrisBlocks[x, y2+1];
+                            tetrisBlocks[x, y2] = tetrisBlocks[x, y2-1];
                         }
                     }
-                    y++;
+                    y--;
+                    removeCount++;
                 }
             }
 
-
+            if (removeCount > 0)
+            {
+                GetScore?.Invoke(1000 * (int)Math.Pow(2, removeCount),removeCount==4);
+            }
         }
     }
 }

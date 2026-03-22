@@ -14,7 +14,8 @@ namespace Framework.Tetris
         List<Scene> sceneList = new List<Scene>()
         {
             new StartScene(),
-            new GameScene()
+            new GameScene(),
+            new ConfigScene(),
         };
 
         SceneManager<Scene> _scene = new();
@@ -31,7 +32,11 @@ namespace Framework.Tetris
 
         protected override void Initialize()
         {
-            ((StartScene)sceneList[0]).GameStartRequested += GameStart;
+            ((StartScene)sceneList[0]).MenuSelected += GameStart;
+            ((GameScene)sceneList[1]).RestartRequest += () => _scene.ChangeScene(sceneList[0]);
+            ((ConfigScene)sceneList[2]).RequestReturnMainScreen += () => _scene.ChangeScene(sceneList[0]);
+            DataManager.LoadData();
+            DataManager.ApplyConfig();
             _scene.ChangeScene(sceneList[0]);
         }
 
@@ -46,6 +51,12 @@ namespace Framework.Tetris
             {
                 case 0:
                     _scene.ChangeScene(sceneList[1]);
+                    break;
+                case 1:
+                    _scene.ChangeScene(sceneList[2]);
+                    break;
+                case 2:
+                    Quit();
                     break;
             }
         }

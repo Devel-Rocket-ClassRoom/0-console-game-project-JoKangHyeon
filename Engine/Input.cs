@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace Framework.Engine
@@ -10,37 +9,71 @@ namespace Framework.Engine
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
 
-        private static readonly HashSet<ConsoleKey> s_currentKeys = new();
-        private static readonly HashSet<ConsoleKey> s_previousKeys = new();
+        private static readonly HashSet<VirtualKey> s_currentKeys = new();
+        private static readonly HashSet<VirtualKey> s_previousKeys = new();
 
-        private static readonly ConsoleKey[] s_trackedKeys =
+
+        static GameAction<ConsoleKey> getOneConsoleKeyCallback;
+        static bool getOneKeyWaiting;
+        static ConsoleKey[] allKeys = Enum.GetValues<ConsoleKey>();
+
+        public enum VirtualKey
         {
-            // 방향키
-            ConsoleKey.UpArrow, ConsoleKey.DownArrow,
-            ConsoleKey.LeftArrow, ConsoleKey.RightArrow,
+            NONE,
+            Select,
+            Up,
+            Down,
+            Right,
+            Left,
+            HardDrop,
+            SoftDrop,
+            Keep,
+            SpinRight,
+            SpinLeft,
+            SPECIAL_ESC,
+        }
 
-            // 숫자키 (일반)
-            ConsoleKey.D0, ConsoleKey.D1, ConsoleKey.D2, ConsoleKey.D3, ConsoleKey.D4,
-            ConsoleKey.D5, ConsoleKey.D6, ConsoleKey.D7, ConsoleKey.D8, ConsoleKey.D9,
-
-            // 숫자키 (넘패드)
-            ConsoleKey.NumPad0, ConsoleKey.NumPad1, ConsoleKey.NumPad2, ConsoleKey.NumPad3,
-            ConsoleKey.NumPad4, ConsoleKey.NumPad5, ConsoleKey.NumPad6, ConsoleKey.NumPad7,
-            ConsoleKey.NumPad8, ConsoleKey.NumPad9,
-
-            // 특수키
-            ConsoleKey.Enter, ConsoleKey.Escape, ConsoleKey.Spacebar,
-            ConsoleKey.Tab, ConsoleKey.Backspace,
-
-            // 영문자
-            ConsoleKey.H, ConsoleKey.S, ConsoleKey.Y, ConsoleKey.N,
-            ConsoleKey.W, ConsoleKey.A, ConsoleKey.D, ConsoleKey.Z, ConsoleKey.X,
-        };
+        private static readonly Dictionary<ConsoleKey, VirtualKey> s_keyMapping = new();
 
         public static bool HasInput => s_currentKeys.Count > 0;
 
+        public static bool IsConflict(ConsoleKey key)
+        {
+            return s_keyMapping.ContainsKey(key);
+        }
+
+        public static void SetKey(ConsoleKey actualKey, VirtualKey virtualKey)
+        {
+            if (s_keyMapping.ContainsKey(actualKey))
+            {
+                s_keyMapping[actualKey] = virtualKey;
+            }
+            else
+            {
+                s_keyMapping.Add(actualKey, virtualKey);
+            }
+        }
+
+        public static void ClearKey()
+        {
+            s_keyMapping.Clear();
+        }
+
+        public static IEnumerable<(ConsoleKey actualKey, VirtualKey virtualKey)> GetKeys()
+        {
+            foreach (var kvp in s_keyMapping)
+            {
+                yield return (kvp.Key, kvp.Value);
+            }
+        }
+
         public static void Poll()
         {
+            if (getOneKeyWaiting)
+            {
+                GetOneKeyCheck();
+            }
+
             s_previousKeys.Clear();
             foreach (var key in s_currentKeys)
             {
@@ -48,15 +81,19 @@ namespace Framework.Engine
             }
 
             s_currentKeys.Clear();
-
-            foreach (var key in s_trackedKeys)
+            if (!getOneKeyWaiting)
             {
-                short state = GetAsyncKeyState((int)key);
-                if ((state & 0x8000) != 0)
+                foreach (var key in s_keyMapping.Keys)
                 {
-                    s_currentKeys.Add(key);
+                    short state = GetAsyncKeyState((int)key);
+                    if ((state & 0x8000) != 0)
+                    {
+                        s_currentKeys.Add(s_keyMapping[key]);
+                    }
                 }
             }
+
+
 
             // Console 입력 버퍼 drain (잔여 키 방지)
             while (Console.KeyAvailable)
@@ -68,7 +105,7 @@ namespace Framework.Engine
         /// <summary>
         /// 이번 프레임에 눌려있는지 (held)
         /// </summary>
-        public static bool IsKey(ConsoleKey key)
+        public static bool IsKey(VirtualKey key)
         {
             return s_currentKeys.Contains(key);
         }
@@ -76,7 +113,7 @@ namespace Framework.Engine
         /// <summary>
         /// 이전 프레임에 안 눌렸다가 이번 프레임에 눌린 순간 (edge-triggered)
         /// </summary>
-        public static bool IsKeyDown(ConsoleKey key)
+        public static bool IsKeyDown(VirtualKey key)
         {
             return s_currentKeys.Contains(key) && !s_previousKeys.Contains(key);
         }
@@ -84,9 +121,45 @@ namespace Framework.Engine
         /// <summary>
         /// 이전 프레임에 눌렸다가 이번 프레임에 뗀 순간
         /// </summary>
-        public static bool IsKeyUp(ConsoleKey key)
+        public static bool IsKeyUp(VirtualKey key)
         {
             return !s_currentKeys.Contains(key) && s_previousKeys.Contains(key);
         }
+
+        public static void GetOneConsoleKey(GameAction<ConsoleKey> callback)
+        {
+            getOneConsoleKeyCallback = callback;
+            getOneKeyWaiting = true;
+
+        }
+
+
+        static void GetOneKeyCheck()
+        {
+            HashSet<ConsoleKey> pass = new();
+            foreach (var key in s_keyMapping)
+            {
+                if(key.Value == VirtualKey.Select)
+                {
+                    pass.Add(key.Key);
+                }
+            }
+
+            foreach (var key in allKeys)
+            {
+                if (pass.Contains(key))
+                    continue;
+
+                short state = GetAsyncKeyState((int)key);
+                if ((state & 0x8000) != 0)
+                {
+                    getOneKeyWaiting = false;
+                    getOneConsoleKeyCallback?.Invoke(key);
+                    break;
+                }
+            }
+        }
+
+        
     }
 }
