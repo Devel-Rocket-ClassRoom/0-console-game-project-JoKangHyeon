@@ -73,7 +73,7 @@ public static class DataManager
                 string json = File.ReadAllText(fileDirectory);
                 _currentGameData = JsonSerializer.Deserialize<GameData>(json);
             }
-            catch (BadImageFormatException)
+            catch (Exception)
             {
                 _currentGameData = GameData.GetDefaultConfig();
             }
