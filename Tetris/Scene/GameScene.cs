@@ -94,6 +94,7 @@ namespace Framework.Tetris
             _scoreTimer = 0;
             _lastScore = amount;
             _tetris = tetris;
+            _scoreP1 += amount;
         }
 
         public override void Load()
